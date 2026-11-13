@@ -1,1 +1,2 @@
- helo from ganesha 
+print("Hello", end=" ")
+print("World")   
