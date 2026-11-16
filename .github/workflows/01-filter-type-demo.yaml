@@ -1,62 +1,85 @@
-name: 02 - Expressions Variables Contexts Demo
+name: 01 - CWVJ Flask Build Test Publish Pipeline
 
 on:
   push:
     branches:
       - main
       - feature/*
+    paths:
+      - app/**
+      - .github/workflows/**
+
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
 
 env:
-  APPLICATION_NAME: payment-service
-  DEPLOYMENT_ENVIRONMENT: production
-  AWS_REGION: ap-south-1
+  APPLICATION_NAME: github-actions-project
+  DOCKER_USERNAME: rkognsh
 
 jobs:
-  demo-job:
+  flask-build-test-publish-job:
     runs-on: ubuntu-latest
 
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref_name, 'feature/')) || (github.event_name == 'pull_request' && github.base_ref == 'main' && !contains(github.event.pull_request.title, 'WIP')) }}
+
     steps:
-      - name: Print Variables Contexts and Expressions
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Generate Dynamic Image Tag
         run: |
-          echo "========== DEFAULT VARIABLES =========="
-          echo "Event Name: $GITHUB_EVENT_NAME"
-          echo "Branch Name: $GITHUB_REF_NAME"
-          echo "Commit SHA: $GITHUB_SHA"
-          echo "Runner OS: $RUNNER_OS"
+          echo "IMAGE_TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-          echo ""
-
-          echo "========== CUSTOM VARIABLES =========="
-          echo "Application Name: $APPLICATION_NAME"
-          echo "Deployment Environment: $DEPLOYMENT_ENVIRONMENT"
-          echo "AWS Region: $AWS_REGION"
-
-          echo ""
-
-          echo "========== CONTEXT VALUES =========="
-          echo "Repository: ${{ github.repository }}"
-          echo "Actor: ${{ github.actor }}"
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Runner OS Context: ${{ runner.os }}"
-
-          echo ""
-
-          echo "========== CONTEXT VS VARIABLES =========="
-          echo "Context Ref: ${{ github.ref }}"
-          echo "Variable Ref: $GITHUB_REF"
-
-          echo ""
-
-          echo "========== EXPRESSION EVALUATION =========="
-          echo "Is Main Branch: ${{ github.ref == 'refs/heads/main' }}"
-          echo "Is Feature Branch: ${{ startsWith(github.ref_name, 'feature/') }}"
-
-      - name: Demonstrate Feature Branch Condition
-        if: ${{ startsWith(github.ref_name, 'feature/') }}
+      - name: Display Build Information
         run: |
-          echo "Feature branch detected successfully"
+          echo "Application: $APPLICATION_NAME"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Image Tag: $IMAGE_TAG"
 
-      - name: Demonstrate Main Branch Condition
-        if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./app
+          push: false
+          tags: ${{ env.DOCKER_USERNAME }}/${{ env.APPLICATION_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Run Container
         run: |
-          echo "Main branch deployment logic triggered"
+          docker run -d \
+            -p 5000:5000 \
+            --name flask-container \
+            $DOCKER_USERNAME/$APPLICATION_NAME:$IMAGE_TAG
+
+      - name: Smoke Test Application
+        run: |
+          sleep 5
+          curl --fail http://localhost:5000
+          curl --fail http://localhost:5000/health
+
+      - name: Push Docker Image To DockerHub
+        if: ${{ success() }}
+        run: |
+          docker push $DOCKER_USERNAME/$APPLICATION_NAME:$IMAGE_TAG
+
+      - name: Collect Container Logs
+        if: ${{ failure() }}
+        run: |
+          docker logs flask-container
+
+      - name: Cleanup Containers
+        if: ${{ always() }}
+        run: |
+          docker rm -f flask-container || true
