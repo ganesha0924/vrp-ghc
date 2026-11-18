@@ -59,7 +59,7 @@ jobs:
           docker run -d \
             -p 5000:5000 \
             --name cwvj-flask-container \
-            ${{ vars.DOCKERHUB_USERNAME }}/github-actions-project:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/github-actions-project:${{ github.sha }}
 
       - name: Smoke Test Application
         run: |
