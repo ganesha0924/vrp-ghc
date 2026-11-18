@@ -1,46 +1,110 @@
-
-name: Matrix Strategy Demo
+name: 01 - GitHub Actions Environments Demo
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - "feature/**"
+      - develop
+      - main
 
 jobs:
-  test-job:
+  build-job:
+    name: Build & Publish Image
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - v1
-          - v2
-          - v3
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/github-actions-project:${{ github.sha }}
+            ${{ vars.DOCKERHUB_USERNAME }}/github-actions-project:latest
+
+  deploy-dev-job:
+    name: Deploy to Development
+    if: github.ref_name == 'develop'
+    needs: build-job
+    runs-on: ubuntu-latest
+    environment: dev
 
     steps:
-      - name: Checkout Repository ${{ matrix.version }}
-        uses: actions/checkout@v5
+      - name: Display Branch Information
+        run: |
+          echo "Branch : ${{ github.ref_name }}"
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
+      - name: Display Environment Configuration
+        run: |
+          echo "Application URL : ${{ vars.APP_URL }}"
+          echo "Debug Mode      : ${{ vars.DEBUG_MODE }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
         with:
-          python-version: "3.11"
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Install Dependencies
+      - name: Run Container
         run: |
-          pip install -r requirements.txt
+          docker run -d \
+            -p 5000:5000 \
+            --name cwvj-flask-container \
+            ${{ vars.DOCKERHUB_USERNAME }}/github-actions-project:${{ github.sha }}
 
-      - name: Execute Application
+      - name: Smoke Test Application
         run: |
-          python app.py &
-          APP_PID=$!
-
           sleep 5
-
+          curl --fail http://127.0.0.1:5000/
           curl --fail http://127.0.0.1:5000/health
 
-          echo "Application executed successfully."
+      - name: Display Container Logs
+        run: docker logs cwvj-flask-container
 
-          echo "Matrix Version: ${{ matrix.version }}"
-          python --version
+  deploy-prod-job:
+    name: Deploy to Production
+    if: github.ref_name == 'main'
+    needs: build-job
+    runs-on: ubuntu-latest
+    environment: prod
 
-          kill $APP_PID
+    steps:
+      - name: Display Branch Information
+        run: |
+          echo "Branch : ${{ github.ref_name }}"
+
+      - name: Display Environment Configuration
+        run: |
+          echo "Application URL : ${{ vars.APP_URL }}"
+          echo "Debug Mode      : ${{ vars.DEBUG_MODE }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Run Container
+        run: |
+          docker run -d \
+            -p 5000:5000 \
+            --name cwvj-flask-container \
+            ${{ vars.DOCKERHUB_USERNAME }}/github-actions-project:${{ github.sha }}
+
+      - name: Smoke Test Application
+        run: |
+          sleep 5
+          curl --fail http://127.0.0.1:5000/
+          curl --fail http://127.0.0.1:5000/health
+
+      - name: Display Container Logs
+        run: docker logs cwvj-flask-container
