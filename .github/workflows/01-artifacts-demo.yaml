@@ -1,65 +1,62 @@
-name: 01 - Artifacts Demo
+name: 01 - Caching Demo
 
 on:
   workflow_dispatch:
 
 jobs:
-  flask-ci-job:
+  build-job:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
-      - name: Build Docker Image
-        uses: docker/build-push-action@v7
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          context: .
-          push: false
-          tags: cwvj-flask-app:v1.0.1
+          python-version: "3.13"
 
-      - name: Run Container
-        run: |
-          docker run -d \
-            -p 5000:5000 \
-            --name cwvj-flask-container \
-            cwvj-flask-app:v1.0.1
-
-      - name: Generate Smoke Test Report
-        run: |
-          sleep 5
-          curl http://localhost:5000 > smoke-test-report.txt
-          curl http://localhost:5000/health >> smoke-test-report.txt
-
-      - name: Export Container Logs
-        run: |
-          docker logs cwvj-flask-container > container-logs.txt
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+      - name: Restore Pip Cache
+        id: pip-cache
+        uses: actions/cache@v5
         with:
-          name: flask-ci-artifacts
-          path: |
-            smoke-test-report.txt
-            container-logs.txt
+          path: ~/.cache/pip
+          key: pip-cache-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
 
-  review-job:
+      - name: Display Cache Status
+        run: |
+          echo "Cache Hit: ${{ steps.pip-cache.outputs.cache-hit }}"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+  test-job:
     runs-on: ubuntu-latest
 
     needs:
-      - flask-ci-job
+      - build-job
 
     steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v8
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          name: flask-ci-artifacts
+          python-version: "3.13"
 
-      - name: Review Downloaded Artifacts
+      - name: Restore Pip Cache
+        id: pip-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Display Cache Status
         run: |
-          echo "===== Smoke Test Report ====="
-          cat smoke-test-report.txt
+          echo "Cache Hit: ${{ steps.pip-cache.outputs.cache-hit }}"
 
-          echo ""
-          echo "===== Container Logs ====="
-          cat container-logs.txt
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
