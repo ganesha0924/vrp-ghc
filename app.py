@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.get("/")
 def home():
-    app.logger.info("Homepage endpoint invoked    ")
+    app.logger.info("Homepage endpoint invoked   ")
 
     return jsonify(
         message="Welcome to Cloud With VarJosh",
