@@ -8,7 +8,7 @@ print("Cloud With VarJosh Flask Application Started")
 
 @app.get("/")
 def home():
-    print("Home endpoint invoked.")
+    print("Home endpoint invoked")
 
     return jsonify(
         message="Welcome to Cloud With VarJosh",
