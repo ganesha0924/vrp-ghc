@@ -1,4 +1,5 @@
-name: 01 - Matrix Strategy Demo
+
+name: Matrix Strategy Demo
 
 on:
   workflow_dispatch:
@@ -8,20 +9,21 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        python-version:
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        version:
+          - v1
+          - v2
+          - v3
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository ${{ matrix.version }}
         uses: actions/checkout@v5
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
 
       - name: Install Dependencies
         run: |
@@ -38,7 +40,7 @@ jobs:
 
           echo "Application executed successfully."
 
-          echo "Matrix Python Version : ${{ matrix.python-version }}"
+          echo "Matrix Version: ${{ matrix.version }}"
           python --version
 
           kill $APP_PID
