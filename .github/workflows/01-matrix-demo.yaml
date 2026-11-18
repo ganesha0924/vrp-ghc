@@ -110,7 +110,7 @@ jobs:
         run: docker logs cwvj-flask-container
 
   deploy-feature-job:
-    name: Deploy to Production
+    name: Deploy to Feature
     if: contains(github.ref_name, 'feature/')
     needs: build-job
     runs-on: ubuntu-latest
