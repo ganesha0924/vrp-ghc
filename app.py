@@ -3,27 +3,25 @@ import os
 
 app = Flask(__name__)
 
+print("Cloud With VarJosh Flask Application Started")
+
 @app.get("/")
 def home():
-    app.logger.info("Homepage endpoint invoked   ")
+    print("Home endpoint invoked")
 
     return jsonify(
         message="Welcome to Cloud With VarJosh",
         platform="GitHub Actions",
-        runtime="Docker + Flask"
+        runtime="Python + Flask"
     )
 
 @app.get("/health")
 def health():
-    app.logger.info("Health check endpoint invoked")
-
+    print("Health endpoint invoked")
     return jsonify(status="healthy"), 200
 
 if __name__ == "__main__":
-    app.logger.info("Starting Flask application")
-
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT", 5000))
     )
-# Feature Branch Changed
