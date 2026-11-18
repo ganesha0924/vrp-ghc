@@ -111,7 +111,7 @@ jobs:
 
   deploy-feature-job:
     name: Deploy to Production
-    if: github.ref_name == 'feature/**'
+    if: contains(github.ref_name, 'feature/')
     needs: build-job
     runs-on: ubuntu-latest
     environment: dev
