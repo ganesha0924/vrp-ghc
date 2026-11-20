@@ -1,56 +1,46 @@
+name: Generate Build Information
+description: Generates build metadata using GitHub Context.
 
-name: Build Information Demo
+inputs:
+  application-name:
+    description: Name of the application.
+    required: true
 
-on:
-  workflow_dispatch:
+  environment:
+    description: Deployment environment.
+    required: true
 
-jobs:
-  build-information:
-    runs-on: ubuntu-latest
+outputs:
+  build-info-path:
+    description: Path to the generated build information file.
+    value: output/build-info.txt
 
-    steps:
-      # Step 1: Checkout repository
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+runs:
+  using: composite
 
-      # Step 2: Generate build information
-      - name: Generate Build Information
-        id: build-info
-        uses: ./.github/actions/generate-build-info
-        with:
-          application-name: Cloud With VarJosh
-          environment: Development
+  steps:
+    - name: Generate Build Information
+      shell: bash
+      run: |
+        set -e
 
-      # Step 3: Install tree utility
-      - name: Install Tree
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y tree
+        mkdir -p output
 
-      # Step 4: Display workspace structure
-      - name: Display Workspace
-        run: |
-          echo "=================================="
-          echo "GitHub Workspace"
-          echo "$GITHUB_WORKSPACE"
-          echo "=================================="
+        BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          echo "Workspace Directory Structure:"
-          tree -a -L 4 "$GITHUB_WORKSPACE"
+        cat <<EOF > output/build-info.txt
+        Application : ${{ inputs.application-name }}
+        Environment : ${{ inputs.environment }}
+        Repository  : ${{ github.repository }}
+        Branch      : ${{ github.ref_name }}
+        Commit SHA  : ${{ github.sha }}
+        Run Number  : ${{ github.run_number }}
+        Workflow    : ${{ github.workflow }}
+        Triggered By: ${{ github.actor }}
+        Build Time  : ${BUILD_TIME}
+        EOF
 
-      # Step 5: Display generated build information
-      - name: Display Build Information
-        run: |
-          echo "Generated File:"
-          echo "${{ steps.build-info.outputs.build-info-path }}"
-
-          cat "${{ steps.build-info.outputs.build-info-path }}"
-
-      # Step 6: Upload build information as artifact
-      - name: Upload Build Information
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-information
-          path: ${{ steps.build-info.outputs.build-info-path }}
-          if-no-files-found: error
-          retention-days: 7
+        echo "======================================"
+        echo "Build Information"
+        echo "======================================"
+        cat output/build-info.txt
