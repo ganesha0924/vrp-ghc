@@ -1,3 +1,4 @@
+
 name: Build Information Demo
 
 on:
@@ -5,25 +6,51 @@ on:
 
 jobs:
   build-information:
-
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout repository
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
+      # Step 2: Generate build information
       - name: Generate Build Information
         id: build-info
-
         uses: ./.github/actions/generate-build-info
-
         with:
           application-name: Cloud With VarJosh
           environment: Development
 
-      - name: Upload Build Information
-        uses: actions/upload-artifact@v7
+      # Step 3: Install tree utility
+      - name: Install Tree
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree
 
+      # Step 4: Display workspace structure
+      - name: Display Workspace
+        run: |
+          echo "=================================="
+          echo "GitHub Workspace"
+          echo "$GITHUB_WORKSPACE"
+          echo "=================================="
+
+          echo "Workspace Directory Structure:"
+          tree -a -L 4 "$GITHUB_WORKSPACE"
+
+      # Step 5: Display generated build information
+      - name: Display Build Information
+        run: |
+          echo "Generated File:"
+          echo "${{ steps.build-info.outputs.build-info-path }}"
+
+          cat "${{ steps.build-info.outputs.build-info-path }}"
+
+      # Step 6: Upload build information as artifact
+      - name: Upload Build Information
+        uses: actions/upload-artifact@v4
         with:
           name: build-information
           path: ${{ steps.build-info.outputs.build-info-path }}
+          if-no-files-found: error
+          retention-days: 7
