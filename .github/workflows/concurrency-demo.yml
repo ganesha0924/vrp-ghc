@@ -1,42 +1,28 @@
 
-name: Job Concurrency Demo
+name: Dynamic Concurrency Demo
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    concurrency:
-      group: build-group
-      cancel-in-progress: false
-
     runs-on: ubuntu-latest
+
     steps:
-      - run: |
+      - name: Show PR information
+        run: |
+          echo "Branch: $GITHUB_REF"
+          echo "Run ID: $GITHUB_RUN_ID"
+
+      - name: Simulate build
+        run: |
           echo "Build started"
-          sleep 30
+          sleep 60
           echo "Build completed"
-
-  test:
-    concurrency:
-      group: test-group
-      cancel-in-progress: false
-
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "Test started"
-          sleep 30
-          echo "Test completed"
-
-  deploy:
-    concurrency:
-      group: deploy-group
-      cancel-in-progress: false
-      
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "Deploy started"
-          sleep 30
-          echo "Deploy completed"
