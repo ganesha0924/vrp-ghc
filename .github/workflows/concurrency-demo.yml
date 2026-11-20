@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Show PR information -v1
+      - name: Show PR information -v2
         run: |
           echo "Branch: $GITHUB_REF"
           echo "Run ID: $GITHUB_RUN_ID"
