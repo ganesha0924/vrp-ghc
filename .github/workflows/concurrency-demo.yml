@@ -6,6 +6,10 @@ on:
 
 jobs:
   build:
+    concurrency:
+      group: my-build-group
+      cancel-in-progress: false
+
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -14,6 +18,10 @@ jobs:
           echo "Build completed"
 
   test:
+    concurrency:
+      group: my-build-group
+      cancel-in-progress: false
+
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -22,6 +30,10 @@ jobs:
           echo "Test completed"
 
   deploy:
+    concurrency:
+      group: my-build-group
+      cancel-in-progress: false
+      
     runs-on: ubuntu-latest
     steps:
       - run: |
