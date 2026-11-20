@@ -1,42 +1,27 @@
-
-name: Job Concurrency Demo
-
-on:
-  workflow_dispatch:
-
 jobs:
   build:
     concurrency:
-      group: my-build-group
+      group: build-group
       cancel-in-progress: false
 
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "Build started"
-          sleep 30
-          echo "Build completed"
+      - run: sleep 30
 
   test:
     concurrency:
-      group: my-build-group
+      group: test-group
       cancel-in-progress: false
 
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "Test started"
-          sleep 30
-          echo "Test completed"
+      - run: sleep 30
 
   deploy:
     concurrency:
-      group: my-build-group
+      group: deploy-group
       cancel-in-progress: false
-      
+
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "Deploy started"
-          sleep 30
-          echo "Deploy completed"
+      - run: sleep 30
