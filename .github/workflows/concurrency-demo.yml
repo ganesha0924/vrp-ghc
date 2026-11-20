@@ -1,0 +1,23 @@
+
+name: Concurrency Demo
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: my-first-concurrency-group
+  cancel-in-progress: false
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start
+        run: |
+          echo "Workflow started"
+          echo "Run ID: $GITHUB_RUN_ID"
+          sleep 60
+
+      - name: Finish
+        run: echo "Workflow completed"
